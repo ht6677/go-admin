@@ -11,6 +11,7 @@ type Application struct {
 	JwtSecret     string
 	Mode          string
 	DemoMsg       string
+	EnableDP      bool
 }
 
 func InitApplication(cfg *viper.Viper) *Application {
@@ -23,6 +24,7 @@ func InitApplication(cfg *viper.Viper) *Application {
 		JwtSecret:     cfg.GetString("jwtSecret"),
 		Mode:          cfg.GetString("mode"),
 		DemoMsg:       cfg.GetString("demoMsg"),
+		EnableDP:      cfg.GetBool("enabledp"),
 	}
 }
 

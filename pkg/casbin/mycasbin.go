@@ -1,34 +1,50 @@
 package mycasbin
 
 import (
-	"fmt"
 	"github.com/casbin/casbin/v2"
-	gormadapter "github.com/casbin/gorm-adapter/v2"
-	"github.com/go-kit/kit/endpoint"
+	"github.com/casbin/casbin/v2/model"
+	gormAdapter "github.com/casbin/gorm-adapter/v2"
 	_ "github.com/go-sql-driver/mysql"
-	"go-admin/database"
-	"go-admin/tools/config"
+	"log"
+	"go-admin/global"
 )
 
-var Em endpoint.Middleware
+// Initialize the model from a string.
+var text = `
+[request_definition]
+r = sub, obj, act
 
-func Casbin() (*casbin.Enforcer, error) {
-	conn := database.GetMysqlConnect()
-	if config.DatabaseConfig.Dbtype == "sqlite3" {
-		conn = config.DatabaseConfig.Host
-	}
-	Apter, err := gormadapter.NewAdapter(config.DatabaseConfig.Dbtype, conn, true)
+[policy_definition]
+p = sub, obj, act
+
+[policy_effect]
+e = some(where (p.eft == allow))
+
+[matchers]
+m = r.sub == p.sub && (keyMatch2(r.obj, p.obj) || keyMatch(r.obj, p.obj)) && (r.act == p.act || p.act == "*")
+`
+
+func Setup() {
+	Apter, err := gormAdapter.NewAdapterByDB(global.Eloquent)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	e, err := casbin.NewEnforcer("config/rbac_model.conf", Apter)
+	m, err := model.NewModelFromString(text)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	if err := e.LoadPolicy(); err == nil {
-		return e, err
+	e, err := casbin.NewSyncedEnforcer(m, Apter)
+	if err != nil {
+		panic(err)
+	}
+	global.CasbinEnforcer = e
+}
+
+func Casbin() (*casbin.SyncedEnforcer, error) {
+	if err := global.CasbinEnforcer.LoadPolicy(); err == nil {
+		return global.CasbinEnforcer, err
 	} else {
-		fmt.Print("casbin rbac_model or policy init error, message: %v", err)
+		log.Printf("casbin rbac_model or policy init error, message: %v \r\n", err.Error())
 		return nil, err
 	}
 }

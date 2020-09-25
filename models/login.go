@@ -1,7 +1,7 @@
 package models
 
 import (
-	orm "go-admin/database"
+	orm "go-admin/global"
 	"go-admin/tools"
 )
 
